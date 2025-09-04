@@ -29,7 +29,6 @@ def image_loader(image_path):
 cnn = models.vgg19(weights=models.VGG19_Weights.DEFAULT).features.eval()
 
 # Content loss
-
 class ContentLoss(nn.Module):
     def __init__(self, target):
         super(ContentLoss, self).__init__()
@@ -39,6 +38,31 @@ class ContentLoss(nn.Module):
     def forward(self, input):
         self.loss = nn.functional.mse_loss(input, self.target)
         return input
+    
+# Gram-matriisi
+
+def gram_matrix(features: torch.Tensor) -> torch.Tensor:
+
+    b, c, h, w = features.size()
+    F = features.view(b, c, h * w)
+    G = torch.bmm(F, F.transpose(1, 2))
+
+    return G / (c * h * w)
+
+# Style-loss
+
+class StyleLoss(nn.Module):
+    def __init__(self, target_feature: torch.Tensor):
+        super().__init__()
+        with torch.no_grad():
+            self.target = gram_matrix(target_feature).detach()
+        self.loss = 0.0
+    
+    def forward(self, input:torch.Tensor):
+        G = gram_matrix(input)
+        self.loss == nn.functional.mse_loss(G, self.target)
+        return input
+
 
 #Rakennetaan uusi malli, johon lisätään content loss tiettyyn kohtaan
 
